@@ -12,19 +12,24 @@ type TapeBlock struct {
 	Checksum byte
 }
 
-func writeDataByte(data byte, hi byte, lo byte, writer *bytes.Buffer, freq int) error {
-	const (
-		PULSELEN_ZERO = 855
-		PULSELEN_ONE  = 1710
-	)
+func writeDataByte(data byte, hi byte, lo byte, writer *bytes.Buffer, freq int, tk90turbo bool) error {
+	
+	var pulselen_zero int = 855
+	var pulselen_one int = 1710	
+	
+	if tk90turbo == true {
+		pulselen_zero = 325
+		pulselen_one = 649
+	}
+	
 
 	var mask byte = 0x80
 	for mask != 0 {
 		var len int
 		if (data & mask) == 0 {
-			len = PULSELEN_ZERO
+			len = pulselen_zero
 		} else {
-			len = PULSELEN_ONE
+			len = pulselen_one
 		}
 
 		if err := wav.DoSignal(writer, hi, len, freq); err != nil {
@@ -38,23 +43,31 @@ func writeDataByte(data byte, hi byte, lo byte, writer *bytes.Buffer, freq int) 
 	return nil
 }
 
-func (t *TapeBlock) SaveSoundData(amplify bool, soundBuffer *bytes.Buffer, freq int) error {
-	const (
-		PULSELEN_PILOT            = 2168
-		PULSELEN_SYNC1            = 667
-		PULSELEN_SYNC2            = 735
-		PULSELEN_SYNC3            = 954
-		IMPULSNUMBER_PILOT_HEADER = 8063
-		IMPULSNUMBER_PILOT_DATA   = 3223
-	)
+func (t *TapeBlock) SaveSoundData(amplify bool, soundBuffer *bytes.Buffer, freq int, tk90turbo bool) error {
+	
+	var pulselen_pilot int = 2168
+	var pulselen_sync1 int = 667
+	var pulselen_sync2 int = 735
+	var pulselen_sync3 int = 954
+	var impulsenumber_pilot_header int = 8063
+	var impulsenumber_pilot_data int = 3223
+	
+	if tk90turbo == true {
+		pulselen_pilot = 1408
+		pulselen_sync1 = 397
+		pulselen_sync2 = 317
+		pulselen_sync3 = 954
+		impulsenumber_pilot_header = 4835
+		impulsenumber_pilot_data = 4835		
+	}
 
 	var err error
 
 	var pilotImpulses int
 	if (*t.Data)[0] < 128 {
-		pilotImpulses = IMPULSNUMBER_PILOT_HEADER
+		pilotImpulses = impulsenumber_pilot_header
 	} else {
-		pilotImpulses = IMPULSNUMBER_PILOT_DATA
+		pilotImpulses = impulsenumber_pilot_data
 	}
 
 	var HI, LO byte
@@ -69,7 +82,7 @@ func (t *TapeBlock) SaveSoundData(amplify bool, soundBuffer *bytes.Buffer, freq 
 	var signalState = HI
 
 	for i := 0; i < pilotImpulses; i++ {
-		if err = wav.DoSignal(soundBuffer, signalState, PULSELEN_PILOT, freq); err != nil {
+		if err = wav.DoSignal(soundBuffer, signalState, pulselen_pilot, freq); err != nil {
 			return err
 		}
 
@@ -81,30 +94,30 @@ func (t *TapeBlock) SaveSoundData(amplify bool, soundBuffer *bytes.Buffer, freq 
 	}
 
 	if signalState == LO {
-		if err = wav.DoSignal(soundBuffer, LO, PULSELEN_PILOT, freq); err != nil {
+		if err = wav.DoSignal(soundBuffer, LO, pulselen_pilot, freq); err != nil {
 			return err
 		}
 	}
 
-	if err = wav.DoSignal(soundBuffer, HI, PULSELEN_SYNC1, freq); err != nil {
+	if err = wav.DoSignal(soundBuffer, HI, pulselen_sync1, freq); err != nil {
 		return err
 	}
 
-	if err = wav.DoSignal(soundBuffer, LO, PULSELEN_SYNC2, freq); err != nil {
+	if err = wav.DoSignal(soundBuffer, LO, pulselen_sync2, freq); err != nil {
 		return err
 	}
 
 	for _, d := range *t.Data {
-		if err = writeDataByte(d, HI, LO, soundBuffer, freq); err != nil {
+		if err = writeDataByte(d, HI, LO, soundBuffer, freq, tk90turbo); err != nil {
 			return err
 		}
 	}
 
-	if err = writeDataByte(t.Checksum, HI, LO, soundBuffer, freq); err != nil {
+	if err = writeDataByte(t.Checksum, HI, LO, soundBuffer, freq, tk90turbo); err != nil {
 		return err
 	}
 
-	if err = wav.DoSignal(soundBuffer, HI, PULSELEN_SYNC3, freq); err != nil {
+	if err = wav.DoSignal(soundBuffer, HI, pulselen_sync3, freq); err != nil {
 		return err
 	}
 

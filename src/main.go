@@ -16,7 +16,8 @@ import (
 )
 
 const __AUTHOR__ = "Igor Maznitsa (http://www.igormaznitsa.com)"
-const __VERSION__ = "1.0.1"
+const __TK90TURBOAUTHOR__ = "Hernan Alvarez"
+const __VERSION__ = "1.0.1-tk"
 const __PROJECTURI__ = "https://github.com/raydac/zxtap-to-wav"
 
 var fileInName string
@@ -24,6 +25,7 @@ var fileOutName string
 var amplify bool
 var gapBetweenFiles int
 var silenceOnStart bool
+var tk90turbo bool
 var freq int
 
 func init() {
@@ -31,6 +33,7 @@ func init() {
 	flag.StringVar(&fileOutName, "o", "", "target WAV file")
 	flag.BoolVar(&amplify, "a", false, "amplify sound signal")
 	flag.BoolVar(&silenceOnStart, "s", false, "add silence before the first file")
+	flag.BoolVar(&tk90turbo, "t", false, "generates TK90v3 compatible turbo WAVs")
 	flag.IntVar(&gapBetweenFiles, "g", 1, "time gap between sound blocks, in seconds")
 	flag.IntVar(&freq, "f", 22050, "frequency of result wav, in Hz")
 	flag.Usage = func() {
@@ -44,9 +47,10 @@ func header() {
   TAP2WAV converter of .TAP files (a format for ZX-Spectrum emulators) into its .WAV image (PCM, mono).
   Project page : %s
         Author : %s
+		TK90v3 turbo by: %s
        Version : %s
 
-`, __PROJECTURI__, __AUTHOR__, __VERSION__)
+`, __PROJECTURI__, __AUTHOR__, __TK90TURBOAUTHOR__, __VERSION__)
 }
 
 func ParseTap(tapReader io.Reader) ([]*zxtape.TapeBlock, error) {
@@ -79,7 +83,7 @@ func loadTapFile(filePath string) ([]*zxtape.TapeBlock, error) {
 	return ParseTap(file)
 }
 
-func saveWav(tape []*zxtape.TapeBlock, filePath string, freq int) error {
+func saveWav(tape []*zxtape.TapeBlock, filePath string, freq int, tk90turbo bool) error {
 	file, err := os.Create(filePath)
 	if err != nil {
 		return err
@@ -100,7 +104,7 @@ func saveWav(tape []*zxtape.TapeBlock, filePath string, freq int) error {
 			}
 		}
 
-		err = tape.SaveSoundData(amplify, &soundBuffer, freq)
+		err = tape.SaveSoundData(amplify, &soundBuffer, freq, tk90turbo)
 		if err != nil {
 			return err
 		}
@@ -174,12 +178,18 @@ func main() {
 		fileOutName = filepath.Dir(fileInName) + string(os.PathSeparator) + extractName(fileInName) + ".wav"
 	}
 
+	if tk90turbo {
+		fmt.Printf("TK90v3 turbo WAV generation is enabled\n")
+	} else {
+		fmt.Printf("TK90v3 turbo WAV generation is disabled\n")
+	}
+
 	parsedTape, err := loadTapFile(fileInName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = saveWav(parsedTape, fileOutName, freq)
+	err = saveWav(parsedTape, fileOutName, freq, tk90turbo)
 	if err != nil {
 		log.Fatal(err)
 	}
