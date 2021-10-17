@@ -45,10 +45,10 @@ func init() {
 func header() {
 	fmt.Printf(`
   TAP2WAV converter of .TAP files (a format for ZX-Spectrum emulators) into its .WAV image (PCM, mono).
-  Project page : %s
-        Author : %s
-	TK90v3 turbo by: %s
-       Version : %s
+  Project page    : %s
+        Author    : %s
+  TK90v3 turbo by : %s
+       Version    : %s
 
 `, __PROJECTURI__, __AUTHOR__, __TK90TURBOAUTHOR__, __VERSION__)
 }
