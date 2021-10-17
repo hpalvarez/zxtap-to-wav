@@ -17,7 +17,7 @@ func writeDataByte(data byte, hi byte, lo byte, writer *bytes.Buffer, freq int, 
 	var pulselen_zero int = 855
 	var pulselen_one int = 1710	
 	
-	if tk90turbo == true {
+	if tk90turbo {
 		pulselen_zero = 325
 		pulselen_one = 649
 	}
@@ -52,7 +52,7 @@ func (t *TapeBlock) SaveSoundData(amplify bool, soundBuffer *bytes.Buffer, freq 
 	var impulsenumber_pilot_header int = 8063
 	var impulsenumber_pilot_data int = 3223
 	
-	if tk90turbo == true {
+	if tk90turbo {
 		pulselen_pilot = 1408
 		pulselen_sync1 = 397
 		pulselen_sync2 = 317
